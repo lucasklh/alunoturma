@@ -1,7 +1,8 @@
 import os, json, atexit, datetime
 
 # Exportando funções de acesso
-__all__ = []
+__all__ = ["add_matricula", "del_matricula", "get_turmas_by_aluno", "get_alunos_by_turma", 
+           "get_faltas", "is_aprovado"]
 
 # Globais
 _SCRIPT_DIR_PATH: str = os.path.dirname(os.path.realpath(__file__))
@@ -81,34 +82,39 @@ def _str_para_datetime(turma_dict: dict) -> dict:
     return turma_dict
 
 # Funções de acesso
-
 def add_matricula(id_turma: int, id_aluno: int, id_curso: int, id_filial: int) -> None:
-    """Documentação
+    """
+    Documentação
     """
     raise NotImplementedError
 
 def del_matricula(id_turma: int, id_aluno: int) -> None:
-    """Documentação
+    """
+    Documentação
     """
     raise NotImplementedError
 
 def get_turmas_by_aluno(id_aluno: int) -> list[int]:
-    """Documentação
+    """
+    Documentação
     """
     raise NotImplementedError
 
 def get_alunos_by_turma(id_turma: int) -> list[int]:
-    """Documentação
+    """
+    Documentação
     """
     raise NotImplementedError
 
 def get_faltas(id_turma: int, id_aluno: int) -> int:
-    """Documentação
+    """
+    Documentação
     """
     raise NotImplementedError
 
 def is_aprovado(id_turma: int, id_aluno: int) -> bool:
-    """Documentação
+    """
+    Documentação
     """
     raise NotImplementedError
 
