@@ -14,8 +14,6 @@ _JSON_FILE_PATH: str = os.path.join(_DATA_DIR_PATH, "matriculas.json")
 #         "id_aluno": int,
 #         "faltas": int,
 #         "data_matriculado": datetime
-#         "nota_final": float,
-#         "is_aprovado": bool
 #     },
 #     ...
 # ]
