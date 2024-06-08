@@ -82,6 +82,36 @@ def _str_para_datetime(turma_dict: dict) -> dict:
 
 # Funções de acesso
 
+def add_matricula(id_turma: int, id_aluno: int, id_curso: int, id_filial: int) -> None:
+    """Documentação
+    """
+    raise NotImplementedError
+
+def del_matricula(id_turma: int, id_aluno: int) -> None:
+    """Documentação
+    """
+    raise NotImplementedError
+
+def get_turmas_by_aluno(id_aluno: int) -> list[int]:
+    """Documentação
+    """
+    raise NotImplementedError
+
+def get_alunos_by_turma(id_turma: int) -> list[int]:
+    """Documentação
+    """
+    raise NotImplementedError
+
+def get_faltas(id_turma: int, id_aluno: int) -> int:
+    """Documentação
+    """
+    raise NotImplementedError
+
+def is_aprovado(id_turma: int, id_aluno: int) -> bool:
+    """Documentação
+    """
+    raise NotImplementedError
+
 # Setup
 # Popular lista de turmas
 _read_matriculas()
