@@ -84,11 +84,19 @@ def _str_para_datetime(turma_dict: dict) -> dict:
     return turma_dict
 
 # Funções de acesso
-def add_matricula(id_turma: int, id_aluno: int, id_curso: int, id_filial: int) -> None:
+def add_matricula(id_turma: int, id_aluno: int, id_curso: int, id_filial: int) -> tuple[int, None]:
     """
     Documentação
     """
-    raise NotImplementedError
+    # TODO depois: inserir nova turma no cursoturma
+
+    err, aluno = aluno.get_aluno(id_aluno)
+    if (err != 0):
+        # Algum erro ao encontrar o aluno
+        return err, None
+    
+    
+
 
 def del_matricula(id_turma: int, id_aluno: int) -> None:
     """
@@ -114,7 +122,7 @@ def get_faltas(id_turma: int, id_aluno: int) -> int:
     """
     raise NotImplementedError
 
-def is_aprovado(id_turma: int, id_aluno: int) -> tuple[int,bool]:
+def is_aprovado(id_turma: int, id_aluno: int) -> tuple[int, bool]:
     """
     is_aprovado confere a aprovação de um aluno numa certa turma de curso.
     Caso o aluno esteja aprovado, retornara True, caso não, False.
