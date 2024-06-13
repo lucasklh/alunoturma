@@ -1,6 +1,6 @@
 import os, json, atexit, datetime
 from .. import curso, aluno, turma
-from .. import cursoturma, avaliacaocurso, alunoavaliacao
+from .. import cursoturma, avaliacaocurso, alunoavaliacao, filialturma
 
 # Exportando funções de acesso
 __all__ = ["add_matricula", "del_matricula", "get_turmas_by_aluno", "get_alunos_by_turma", 
@@ -137,6 +137,24 @@ def _turmas_do_curso(turmas: list[int], id_curso: int) -> list[int]:
     
     return turmas_curso
 
+def _turmas_por_filial(turmas: list[int], id_filial: int) -> list[int]:
+    """
+    Filtra uma lista de IDs de turmas, retornando apenas as que são da filial indicada
+    """
+    err, turmas_filial = filialturma.get_turmas_by_filial(id_filial)
+    if err != 0:
+        # Nenhuma turma encontrada para a filial
+        turmas_filial = []
+    
+    turmas_filial_filtro = []
+    
+    for id_turma in turmas_filial:
+        if id_turma in turmas:
+            # Turma é da filial e estava na nossa lista de entrada
+            turmas_filial_filtro.append(id_turma)
+    
+    return turmas_filial_filtro
+
 # Funções de acesso
 def is_cheia(id_turma: int) -> tuple[int, bool]:
     """
@@ -184,22 +202,24 @@ def add_matricula(id_aluno: int, id_curso: int, quer_online: bool) -> tuple[int,
     # Verificar se existe alguma turma disponível para o aluno
 
     # Turmas existentes no horário disponível do aluno
-    turmas: list[int] = _turmas_por_horario(turma.get_turmas()[1], aluno_dict["horario"])
+    turmas_candidatas: list[int] = _turmas_por_horario(turma.get_turmas()[1], aluno_dict["horario"])
 
     # E que possuem uma vaga
-    turmas = _turmas_com_vagas(turmas)
+    turmas_candidatas = _turmas_com_vagas(turmas_candidatas)
 
     # E que, caso o aluno deseje, sejam online
     if quer_online:
-        turmas = _turmas_online(turmas)
-    # Se não desejar online, precisam ser na filial de preferência do aluno
+        turmas_candidatas = _turmas_online(turmas_candidatas)
+    # Ou então, que sejam da filial de preferência do aluno
     else:
-        pass
+        turmas_candidatas = _turmas_por_filial(turmas_candidatas, aluno_dict["filial_pref"])
     
     # E que sejam do curso desejado
-    turmas = _turmas_do_curso(turmas, id_curso)
+    turmas_candidatas = _turmas_do_curso(turmas_candidatas, id_curso)
 
-    # Chegando aqui, se houver alguma turma disponível, matricular o aluno na primeira
+    # Chegando aqui, se houver alguma turma disponível, matricular o aluno na primeira.
+    # Tenho que decidir como lidar com o horário a ser escolhido. Como subtrair isso do horário
+    # disponível do aluno, se for na metade do invervalo de disponibilidade dele?
 
 def del_matricula(id_turma: int, id_aluno: int) -> tuple[int, None]:
     """
