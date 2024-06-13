@@ -96,13 +96,36 @@ def _turmas_por_horario(horario: tuple[int, int]) -> list[int]:
 
     return turmas_no_horario
 
+def _turmas_com_vagas(turmas: list[int]) -> list[int]:
+    # TODO
+    pass
+
 # Funções de acesso
+def is_cheia(id_turma: int) -> tuple[int, bool]:
+    """
+    Verifica se uma turma possui vagas disponíveis
+    """
+    err, turma_dict = turma.get_turma(id_turma)
+    if err != 0:
+        # Erro ao encontrar a turma
+        return err, None # type: ignore
+    
+    err, turma_final = turma.is_final(id_turma)
+    if turma_final:
+        # Se a turma foi finalizada, com certeza está cheia
+        return 0, True
+    
+    max_alunos = turma_dict["max_alunos"]
+    qtd_alunos = len(get_alunos_by_turma(id_turma)[1])
+
+	# Se a quantidade de alunos for maior ou igual ao máximo, a turma está cheia
+    return 0, qtd_alunos >= max_alunos
+
+
 def add_matricula(id_aluno: int, id_curso: int) -> tuple[int, None]:
     """
     Documentação
     """
-    # TODO depois: inserir nova turma no cursoturma
-
     err, dict_aluno = aluno.get_aluno(id_aluno)
     if (err != 0):
         # Algum erro ao encontrar o aluno
@@ -113,12 +136,15 @@ def add_matricula(id_aluno: int, id_curso: int) -> tuple[int, None]:
         # Algum erro ao encontrar o curso
         return err, None
     
-    horario_disponivel: tuple[int, int] = dict_aluno["horario"]
-
-    turmas = _turmas_por_horario(horario_disponivel)
-    
     # Verificar se existe alguma turma disponível para o aluno
 
+    horario_disponivel: tuple[int, int] = dict_aluno["horario"]
+
+    # Turmas existentes no horário disponível do aluno
+    turmas = _turmas_por_horario(horario_disponivel)
+    # ruim, tem q tratar erro
+    turmas = [turma_id for turma_id in turmas if not turma.is_final(turma_id)[1]]
+    
 
 def del_matricula(id_turma: int, id_aluno: int) -> tuple[int, None]:
     """
