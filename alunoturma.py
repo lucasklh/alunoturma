@@ -167,7 +167,7 @@ def add_matricula(id_aluno: int, id_curso: int, quer_online: bool) -> tuple[int,
     """
     Documentação
     """
-    err, dict_aluno = aluno.get_aluno(id_aluno)
+    err, aluno_dict = aluno.get_aluno(id_aluno)
     if (err != 0):
         # Algum erro ao encontrar o aluno
         return err, None
@@ -179,10 +179,8 @@ def add_matricula(id_aluno: int, id_curso: int, quer_online: bool) -> tuple[int,
     
     # Verificar se existe alguma turma disponível para o aluno
 
-    horario_disponivel: tuple[int, int] = dict_aluno["horario"]
-
     # Turmas existentes no horário disponível do aluno
-    turmas: list[int] = _turmas_por_horario(turma.get_turmas()[1], horario_disponivel)
+    turmas: list[int] = _turmas_por_horario(turma.get_turmas()[1], aluno_dict["horario"])
 
     # E que possuem uma vaga
     turmas = _turmas_com_vagas(turmas)
@@ -193,7 +191,6 @@ def add_matricula(id_aluno: int, id_curso: int, quer_online: bool) -> tuple[int,
     
     # E que sejam do curso desejado
     turmas = _turmas_do_curso(turmas, id_curso)
-    
 
 def del_matricula(id_turma: int, id_aluno: int) -> tuple[int, None]:
     """
