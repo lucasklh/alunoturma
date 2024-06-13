@@ -28,7 +28,18 @@ Python 3.9+
 
 Essa função é chamada quando um aluno deseja entrar em uma turma de um certo curso. Ela aplica uma série de filtros às turmas existentes, para verificar se existe alguma turma disponível, de acordo com as necessidades do aluno. Caso não exista, cria uma nova proposta de turma, contendo o aluno.
 
-O módulo aluno é acessado para se obter os parâmetros de horário e filial de preferência. Após o aluno ser inserido em uma turma, seu horário é atualizado utilizando `set_horario` para refletir sua nova disponibilidade.
+O módulo aluno é acessado para se obter os parâmetros de horário e filial de preferência. Após o aluno ser inserido em uma turma, seu horário é atualizado utilizando `set_horario` para refletir sua nova disponibilidade. Se a turma for online, não há atualização, pois as aulas não têm horário fixo.
+
+### Atualização de horário
+
+Lembrando que, por questões de simplificação, os horários de alunos, professores e aulas são representados por uma simples faixa de 24h, representada por dois inteiros de início e fim. Não há a noção de dias da semana, então podemos pensar nessa faixa como o horário em que algo acontece uma vez, semanalmente.
+
+Como temos apenas uma range de horário final e inicial, não podemos separar essa faixa em duas partes. Por isso, ao aluno ser inserido em uma turma, **cortamos o horário disponível dele a partir do fim do alocado**, de forma que qualquer horário livre antes do que foi alocado é descartado. Também por esse motivo, o `add_matricula` sempre procura alocar o horário mais cedo possível. Exemplo:
+
+- Aluno possui disponibilidade de **8h às 16h**
+- Uma turma compatível é encontrada, com aulas de **10h às 12h**
+- Após a matrícula, o novo horário disponível do aluno será de **12h às 16h**
+  - Ou seja, o horário livre de **8h às 10h** foi descartado
 
 ## is_cheia
 

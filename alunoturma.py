@@ -155,6 +155,49 @@ def _turmas_por_filial(turmas: list[int], id_filial: int) -> list[int]:
     
     return turmas_filial_filtro
 
+def _turma_com_horario_mais_cedo(turmas: list[int]) -> int:
+    """
+    Retorna o ID da turma que começa mais cedo dentre as turmas fornecidas,
+    ou a primeira turma online encontrada
+    """
+    assert turmas, "Lista de turmas não deveria estar vazia"
+
+    horario_mais_cedo = 24
+    turma_mais_cedo = None
+
+    for id_turma in turmas:
+        turma_dict = turma.get_turma(id_turma)[1]
+
+        if turma_dict["is_online"]:
+            # Se for online, escolher a primeira encontrada
+            return id_turma
+        
+        if turma_dict["horario"][0] < horario_mais_cedo:
+            # Salva a turma mais cedo encontrada até agora
+            horario_mais_cedo = turma_dict["horario"][0]
+            turma_mais_cedo = id_turma
+    
+    assert turma_mais_cedo, "Nenhuma turma foi escolhida como a mais cedo"
+    
+    return turma_mais_cedo
+
+def _atualiza_horario_aluno(id_aluno: int, id_turma: int) -> None:
+    """
+    Atualiza o horário de disponibilidade de um aluno, removendo tudo acima do horário da turma
+    """
+    turma_dict = turma.get_turma(id_turma)[1]
+    aluno_dict = aluno.get_aluno(id_aluno)[1]
+
+    if turma_dict["is_online"]:
+        # Se for online, não há o que atualizar
+        return
+
+    horario_aluno: list[int] = aluno_dict["horario"]
+    horario_turma: list[int] = turma_dict["horario"]
+    novo_horario: list[int] = [horario_turma[1], horario_aluno[1]]
+
+    aluno.set_horario(id_aluno, novo_horario[0], novo_horario[1])
+
 # Funções de acesso
 def is_cheia(id_turma: int) -> tuple[int, bool]:
     """
@@ -217,9 +260,28 @@ def add_matricula(id_aluno: int, id_curso: int, quer_online: bool) -> tuple[int,
     # E que sejam do curso desejado
     turmas_candidatas = _turmas_do_curso(turmas_candidatas, id_curso)
 
-    # Chegando aqui, se houver alguma turma disponível, matricular o aluno na primeira.
-    # Tenho que decidir como lidar com o horário a ser escolhido. Como subtrair isso do horário
-    # disponível do aluno, se for na metade do invervalo de disponibilidade dele?
+    # Chegando aqui, se houver alguma turma disponível, matricular o aluno na mais cedo
+    if turmas_candidatas:
+        turma_matricula = _turma_com_horario_mais_cedo(turmas_candidatas)
+        turma_matricula_dict = turma.get_turma(turma_matricula)[1]
+        
+        nova_matricula = {
+            "id_turma": turma_matricula,
+            "id_aluno": id_aluno,
+            "faltas": 0,
+            "data_matriculado": datetime.datetime.now()
+        }
+        _matriculas.append(nova_matricula)
+
+        # Atualizar horário do aluno, se não for online
+        _atualiza_horario_aluno(id_aluno, turma_matricula)
+
+        return 0, None
+    # Caso contrário, abrir uma nova turma para o aluno
+    else:
+        # novamente, usar o horario mais cedo possivel
+        # nao esquecer de incluir a turma no Curso-Turma e Filial-Turma
+        pass
 
 def del_matricula(id_turma: int, id_aluno: int) -> tuple[int, None]:
     """
