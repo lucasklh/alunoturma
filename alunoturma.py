@@ -4,7 +4,7 @@ from .. import cursoturma, avaliacaocurso, alunoavaliacao
 
 # Exportando funções de acesso
 __all__ = ["add_matricula", "del_matricula", "get_turmas_by_aluno", "get_alunos_by_turma", 
-           "get_faltas", "is_aprovado"]
+           "get_faltas", "is_aprovado", "is_cheia"]
 
 # Globais
 _SCRIPT_DIR_PATH: str = os.path.dirname(os.path.realpath(__file__))
@@ -83,11 +83,10 @@ def _str_para_datetime(turma_dict: dict) -> dict:
 
     return turma_dict
 
-def _turmas_por_horario(horario: tuple[int, int]) -> list[int]:
+def _turmas_por_horario(turmas: list[dict], horario: tuple[int, int]) -> list[int]:
     """
-    Retorna os ids das turmas cujo horário está contido no horário passado, inclusivo
+    Filtra uma lista de dicts de turmas, retornando apenas as que estão dentro do horário indicado (inclusivo)
     """
-    _, turmas = turma.get_turmas()
     turmas_no_horario = []
 
     for turma_dict in turmas:
@@ -97,8 +96,46 @@ def _turmas_por_horario(horario: tuple[int, int]) -> list[int]:
     return turmas_no_horario
 
 def _turmas_com_vagas(turmas: list[int]) -> list[int]:
-    # TODO
-    pass
+    """
+    Filtra uma lista de IDs de turmas, retornando apenas as que possuem pelo menos uma vaga
+    """
+    turmas_com_vagas = []
+    
+    for id_turma in turmas:
+        if not is_cheia(id_turma)[1]:
+            turmas_com_vagas.append(id_turma)
+    
+    return turmas_com_vagas
+
+def _turmas_online(turmas: list[int]) -> list[int]:
+    """
+    Filtra uma lista de IDs de turmas, retornando apenas as que são online
+    """
+    turmas_online = []
+    
+    for id_turma in turmas:
+        if turma.get_turma(id_turma)[1]["is_online"]:
+            turmas_online.append(id_turma)
+    
+    return turmas_online
+
+def _turmas_do_curso(turmas: list[int], id_curso: int) -> list[int]:
+    """
+    Filtra uma lista de IDs de turmas, retornando apenas as que são do curso indicado
+    """
+    err, turmas_curso = cursoturma.get_turmas_by_curso(id_curso)
+    if err == 7:
+        # Nenhuma turma encontrada para o curso
+        turmas_curso = []
+    
+    turmas_curso_filtro = []
+    
+    for id_turma in turmas_curso:
+        if id_turma in turmas:
+            # Turma é do curso e estava na nossa lista de entrada
+            turmas_curso_filtro.append(id_turma)
+    
+    return turmas_curso
 
 # Funções de acesso
 def is_cheia(id_turma: int) -> tuple[int, bool]:
@@ -118,11 +155,15 @@ def is_cheia(id_turma: int) -> tuple[int, bool]:
     max_alunos = turma_dict["max_alunos"]
     qtd_alunos = len(get_alunos_by_turma(id_turma)[1])
 
+    if qtd_alunos <= 0:
+        # Turma vazia, isso não deveria acontecer
+        return 28, None # type: ignore
+
 	# Se a quantidade de alunos for maior ou igual ao máximo, a turma está cheia
     return 0, qtd_alunos >= max_alunos
 
 
-def add_matricula(id_aluno: int, id_curso: int) -> tuple[int, None]:
+def add_matricula(id_aluno: int, id_curso: int, quer_online: bool) -> tuple[int, None]:
     """
     Documentação
     """
@@ -141,9 +182,17 @@ def add_matricula(id_aluno: int, id_curso: int) -> tuple[int, None]:
     horario_disponivel: tuple[int, int] = dict_aluno["horario"]
 
     # Turmas existentes no horário disponível do aluno
-    turmas = _turmas_por_horario(horario_disponivel)
-    # ruim, tem q tratar erro
-    turmas = [turma_id for turma_id in turmas if not turma.is_final(turma_id)[1]]
+    turmas: list[int] = _turmas_por_horario(turma.get_turmas()[1], horario_disponivel)
+
+    # E que possuem uma vaga
+    turmas = _turmas_com_vagas(turmas)
+
+    # E que, caso o aluno deseje, sejam online
+    if quer_online:
+        turmas = _turmas_online(turmas)
+    
+    # E que sejam do curso desejado
+    turmas = _turmas_do_curso(turmas, id_curso)
     
 
 def del_matricula(id_turma: int, id_aluno: int) -> tuple[int, None]:
@@ -164,7 +213,7 @@ def get_alunos_by_turma(id_turma: int) -> tuple[int, list[int]]:
     """
     raise NotImplementedError
 
-def get_faltas(id_turma: int, id_aluno: int) -> int:
+def get_faltas(id_turma: int, id_aluno: int) -> tuple[int, int]:
     """
     Documentação
     """
@@ -177,7 +226,7 @@ def is_aprovado(id_turma: int, id_aluno: int) -> tuple[int, bool]:
     """
 
     # verifica as faltas do aluno no sistema
-    faltas = get_faltas(id_turma,id_aluno)
+    faltas = get_faltas(id_turma, id_aluno)
     if faltas[0] != 0:
         return 27, False
 
