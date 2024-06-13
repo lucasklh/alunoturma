@@ -147,9 +147,14 @@ def is_cheia(id_turma: int) -> tuple[int, bool]:
         # Erro ao encontrar a turma
         return err, None # type: ignore
     
+    err, turma_ativa = turma.is_ativa(id_turma)
+    if turma_ativa and turma_dict["is_online"]:
+        # Se a turma for online e estiver ativa, sempre haverão vagas
+        return 0, False
+    
     err, turma_final = turma.is_final(id_turma)
     if turma_final:
-        # Se a turma foi finalizada, com certeza está cheia
+        # Se a turma foi finalizada, e não é online ativa, com certeza está cheia
         return 0, True
     
     max_alunos = turma_dict["max_alunos"]
@@ -162,18 +167,17 @@ def is_cheia(id_turma: int) -> tuple[int, bool]:
 	# Se a quantidade de alunos for maior ou igual ao máximo, a turma está cheia
     return 0, qtd_alunos >= max_alunos
 
-
 def add_matricula(id_aluno: int, id_curso: int, quer_online: bool) -> tuple[int, None]:
     """
     Documentação
     """
     err, aluno_dict = aluno.get_aluno(id_aluno)
-    if (err != 0):
+    if err != 0:
         # Algum erro ao encontrar o aluno
         return err, None
     
     err, curso_dict = curso.get_curso(id_curso)
-    if (err != 0):
+    if err != 0:
         # Algum erro ao encontrar o curso
         return err, None
     
@@ -188,9 +192,14 @@ def add_matricula(id_aluno: int, id_curso: int, quer_online: bool) -> tuple[int,
     # E que, caso o aluno deseje, sejam online
     if quer_online:
         turmas = _turmas_online(turmas)
+    # Se não desejar online, precisam ser na filial de preferência do aluno
+    else:
+        pass
     
     # E que sejam do curso desejado
     turmas = _turmas_do_curso(turmas, id_curso)
+
+    # Chegando aqui, se houver alguma turma disponível, matricular o aluno na primeira
 
 def del_matricula(id_turma: int, id_aluno: int) -> tuple[int, None]:
     """
