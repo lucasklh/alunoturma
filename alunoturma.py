@@ -1,5 +1,5 @@
 import os, json, atexit, datetime
-from .. import curso
+from .. import curso, aluno, turma
 from .. import cursoturma, avaliacaocurso, alunoavaliacao
 
 # Exportando funções de acesso
@@ -83,34 +83,56 @@ def _str_para_datetime(turma_dict: dict) -> dict:
 
     return turma_dict
 
+def _turmas_por_horario(horario: tuple[int, int]) -> list[int]:
+    """
+    Retorna os ids das turmas cujo horário está contido no horário passado, inclusivo
+    """
+    _, turmas = turma.get_turmas()
+    turmas_no_horario = []
+
+    for turma_dict in turmas:
+        if turma_dict["horario"][0] >= horario[0] and turma_dict["horario"][1] <= horario[1]:
+            turmas_no_horario.append(turma_dict["id"])
+
+    return turmas_no_horario
+
 # Funções de acesso
-def add_matricula(id_turma: int, id_aluno: int, id_curso: int, id_filial: int) -> tuple[int, None]:
+def add_matricula(id_aluno: int, id_curso: int) -> tuple[int, None]:
     """
     Documentação
     """
     # TODO depois: inserir nova turma no cursoturma
 
-    err, aluno = aluno.get_aluno(id_aluno)
+    err, dict_aluno = aluno.get_aluno(id_aluno)
     if (err != 0):
         # Algum erro ao encontrar o aluno
         return err, None
     
+    err, curso_dict = curso.get_curso(id_curso)
+    if (err != 0):
+        # Algum erro ao encontrar o curso
+        return err, None
     
+    horario_disponivel: tuple[int, int] = dict_aluno["horario"]
+
+    turmas = _turmas_por_horario(horario_disponivel)
+    
+    # Verificar se existe alguma turma disponível para o aluno
 
 
-def del_matricula(id_turma: int, id_aluno: int) -> None:
+def del_matricula(id_turma: int, id_aluno: int) -> tuple[int, None]:
     """
     Documentação
     """
     raise NotImplementedError
 
-def get_turmas_by_aluno(id_aluno: int) -> list[int]:
+def get_turmas_by_aluno(id_aluno: int) -> tuple[int, list[int]]:
     """
     Documentação
     """
     raise NotImplementedError
 
-def get_alunos_by_turma(id_turma: int) -> list[int]:
+def get_alunos_by_turma(id_turma: int) -> tuple[int, list[int]]:
     """
     Documentação
     """
@@ -130,7 +152,7 @@ def is_aprovado(id_turma: int, id_aluno: int) -> tuple[int, bool]:
 
     # verifica as faltas do aluno no sistema
     faltas = get_faltas(id_turma,id_aluno)
-    if get_faltas[0] != 0:
+    if faltas[0] != 0:
         return 27, False
 
     #encontra de que curso é a turma que este aluno se encontra
@@ -145,7 +167,7 @@ def is_aprovado(id_turma: int, id_aluno: int) -> tuple[int, bool]:
 
     #verifica a duração do curso e compara se passou pelo minimo de presença
     faltas_permitidas = curso[1]["duracao_semanas"]
-    if faltas > 0.3*faltas_permitidas:
+    if faltas > 0.3 * faltas_permitidas:
         return 0, False
         
     #obtem os id's de provas aplicadas para esse curso nas turmas
@@ -166,7 +188,7 @@ def is_aprovado(id_turma: int, id_aluno: int) -> tuple[int, bool]:
     #faz o somatório dos valores da lista e divide pelo número de 
     #avaliações que constam ter sido aplicadas para este curso
     
-    media = sum(notas_recebidas)/len(avaliacoes[1])
+    media = sum(notas_recebidas) / len(avaliacoes[1])
 
     #se a media for maior que 7, o aluno está aprovado
     if media >= 7:
