@@ -230,7 +230,8 @@ def is_cheia(id_turma: int) -> tuple[int, bool]:
 
 def add_matricula(id_aluno: int, id_curso: int, quer_online: bool) -> tuple[int, None]:
     """
-    Documentação
+    Matricula o aluno em uma turma de um curso específico. Se não houver uma turma disponível,
+    cria uma nova proposta de turma.
     """
     err, aluno_dict = aluno.get_aluno(id_aluno)
     if err != 0:
@@ -242,7 +243,7 @@ def add_matricula(id_aluno: int, id_curso: int, quer_online: bool) -> tuple[int,
         # Algum erro ao encontrar o curso
         return err, None
     
-    # Verificar se existe alguma turma disponível para o aluno
+    # Verifica se existe alguma turma disponível para o aluno
 
     # Turmas existentes no horário disponível do aluno
     turmas_candidatas: list[int] = _turmas_por_horario(turma.get_turmas()[1], aluno_dict["horario"])
@@ -260,10 +261,9 @@ def add_matricula(id_aluno: int, id_curso: int, quer_online: bool) -> tuple[int,
     # E que sejam do curso desejado
     turmas_candidatas = _turmas_do_curso(turmas_candidatas, id_curso)
 
-    # Chegando aqui, se houver alguma turma disponível, matricular o aluno na mais cedo
+    # Após filtrar, se houver alguma turma disponível, matricula o aluno na mais cedo
     if turmas_candidatas:
         turma_matricula = _turma_com_horario_mais_cedo(turmas_candidatas)
-        turma_matricula_dict = turma.get_turma(turma_matricula)[1]
         
         nova_matricula = {
             "id_turma": turma_matricula,
@@ -273,15 +273,47 @@ def add_matricula(id_aluno: int, id_curso: int, quer_online: bool) -> tuple[int,
         }
         _matriculas.append(nova_matricula)
 
-        # Atualizar horário do aluno, se não for online
+        # Atualiza horário do aluno, se não for online
         _atualiza_horario_aluno(id_aluno, turma_matricula)
 
         return 0, None
     # Caso contrário, abrir uma nova turma para o aluno
     else:
-        # novamente, usar o horario mais cedo possivel
-        # nao esquecer de incluir a turma no Curso-Turma e Filial-Turma
-        pass
+        hora_inicio: int = aluno_dict["horario"][0]
+        hora_fim: int = hora_inicio + curso_dict["carga_horaria"]
+
+        err, nova_turma = turma.add_turma(quer_online, curso_dict["duracao_semanas"], 
+                                          [hora_inicio, hora_fim])
+        if err != 0:
+            # Algum erro ao criar a nova turma
+            return err, None
+        
+        # Adiciona a nova turma em Curso-Turma e Filial-Turma
+        err, _ = cursoturma.add_assunto(nova_turma, id_curso)
+        if err != 0:
+            # Algum erro ao adicionar a turma ao curso
+            turma.del_turma(nova_turma)
+            return err, None
+        
+        err, _ = filialturma.add_aula(aluno_dict["filial_pref"], nova_turma)
+        if err != 0:
+            # Algum erro ao adicionar a turma à filial
+            cursoturma.del_assunto(nova_turma)
+            turma.del_turma(nova_turma)
+            return err, None
+        
+        # Matricula o aluno e atualiza seu horário
+        nova_matricula = {
+            "id_turma": nova_turma,
+            "id_aluno": id_aluno,
+            "faltas": 0,
+            "data_matriculado": datetime.datetime.now()
+        }
+        _matriculas.append(nova_matricula)
+        
+        _atualiza_horario_aluno(id_aluno, nova_turma)
+
+        return 0, None
 
 def del_matricula(id_turma: int, id_aluno: int) -> tuple[int, None]:
     """
@@ -362,4 +394,4 @@ def is_aprovado(id_turma: int, id_aluno: int) -> tuple[int, bool]:
 _read_matriculas()
 
 # Salvar turmas ao final do programa
-atexit.register(_write_matriculas);
+atexit.register(_write_matriculas)
