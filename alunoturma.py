@@ -1,10 +1,10 @@
-import os, json, atexit, datetime
+import os, json, atexit, datetime, copy
 from .. import curso, aluno, turma
 from .. import cursoturma, avaliacaocurso, alunoavaliacao, filialturma
 
 # Exportando funções de acesso
 __all__ = ["add_matricula", "del_matricula", "get_turmas_by_aluno", "get_alunos_by_turma", 
-           "get_faltas", "is_aprovado", "is_cheia"]
+           "get_faltas", "is_aprovado", "is_cheia", "get_matricula"]
 
 # Globais
 _SCRIPT_DIR_PATH: str = os.path.dirname(os.path.realpath(__file__))
@@ -223,7 +223,7 @@ def is_cheia(id_turma: int) -> tuple[int, bool]:
 
     if qtd_alunos <= 0:
         # Turma vazia, isso não deveria acontecer
-        return 28, None # type: ignore
+        return 26, None # type: ignore
 
 	# Se a quantidade de alunos for maior ou igual ao máximo, a turma está cheia
     return 0, qtd_alunos >= max_alunos
@@ -310,7 +310,7 @@ def add_matricula(id_aluno: int, id_curso: int, quer_online: bool) -> tuple[int,
             "data_matriculado": datetime.datetime.now()
         }
         _matriculas.append(nova_matricula)
-        
+
         _atualiza_horario_aluno(id_aluno, nova_turma)
 
         return 0, None
@@ -323,21 +323,76 @@ def del_matricula(id_turma: int, id_aluno: int) -> tuple[int, None]:
 
 def get_turmas_by_aluno(id_aluno: int) -> tuple[int, list[int]]:
     """
-    Documentação
+    Retorna todas turmas em que um aluno está matriculado
     """
-    raise NotImplementedError
+    err, _ = aluno.get_aluno(id_aluno)
+    if err != 0:
+        # Algum erro ao encontrar o aluno
+        return err, None # type: ignore
+
+    turmas = []
+    
+    for matricula in _matriculas:
+        if matricula["id_aluno"] == id_aluno:
+            turmas.append(matricula["id_turma"])
+    
+    if turmas:
+        return 0, turmas
+    else:
+        # Nenhuma matrícula encontrada para o aluno
+        return 28, None # type: ignore
 
 def get_alunos_by_turma(id_turma: int) -> tuple[int, list[int]]:
     """
-    Documentação
+    Retorna todos alunos matriculados em uma turma
     """
-    raise NotImplementedError
+    err, _ = turma.get_turma(id_turma)
+    if err != 0:
+        # Algum erro ao encontrar a turma
+        return err, None # type: ignore
+    
+    alunos = []
+
+    for matricula in _matriculas:
+        if matricula["id_turma"] == id_turma:
+            alunos.append(matricula["id_aluno"])
+    
+    if alunos:
+        return 0, alunos
+    else:
+        # Nenhum aluno matriculado na turma, não deveria acontecer
+        return 26, None # type: ignore
+
+def get_matricula(id_turma: int, id_aluno: int) -> tuple[int, dict]:
+    """
+    Retorna os atributos de uma certa matrícula de aluno em turma
+    """
+    err, aluno_dict = aluno.get_aluno(id_aluno)
+    if err != 0:
+        # Algum erro ao encontrar o aluno
+        return err, None # type: ignore
+
+    err, turma_dict = turma.get_turma(id_turma)
+    if err != 0:
+        # Algum erro ao encontrar a turma
+        return err, None # type: ignore
+    
+    for matricula in _matriculas:
+        if matricula["id_turma"] == id_turma and matricula["id_aluno"] == id_aluno:
+            return 0, copy.deepcopy(matricula)
+    
+    return 27, None # type: ignore
 
 def get_faltas(id_turma: int, id_aluno: int) -> tuple[int, int]:
     """
-    Documentação
+    Retorna a quantidade de faltas de um aluno em uma turma
     """
-    raise NotImplementedError
+    err, matricula = get_matricula(id_turma, id_aluno)
+    if err != 0:
+        # Algum erro ao encontrar a matrícula
+        return err, None # type: ignore
+    
+    return matricula["faltas"]
 
 def is_aprovado(id_turma: int, id_aluno: int) -> tuple[int, bool]:
     """
