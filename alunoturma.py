@@ -226,11 +226,12 @@ def is_cheia(id_turma: int) -> tuple[int, bool]:
         return 26, None # type: ignore
 
 	# Se a quantidade de alunos for maior ou igual ao máximo, a turma está cheia
+    # Na verdade não deveria ser maior
     return 0, qtd_alunos >= max_alunos
 
 def add_matricula(id_aluno: int, id_curso: int, quer_online: bool) -> tuple[int, None]:
     """
-    Matricula o aluno em uma turma de um curso específico. Se não houver uma turma disponível,
+    Matricula o aluno em alguma turma de um curso específico. Se não houver uma turma disponível,
     cria uma nova proposta de turma.
     """
     err, aluno_dict = aluno.get_aluno(id_aluno)
@@ -317,9 +318,36 @@ def add_matricula(id_aluno: int, id_curso: int, quer_online: bool) -> tuple[int,
 
 def del_matricula(id_turma: int, id_aluno: int) -> tuple[int, None]:
     """
-    Documentação
+    Remove uma matrícula. Se a turma esvaziar, deleta a turma.
     """
-    raise NotImplementedError
+    # se a turma esvaziar, precisamos deletar ela
+    err, matricula = get_matricula(id_turma, id_aluno)
+    if err != 0:
+        # Algum erro ao encontrar a matrícula
+        return err, None
+    
+    # Remover matrícula
+    _matriculas.remove(matricula)
+
+    err, _ = get_alunos_by_turma(id_turma)
+    if err == 26:
+        # Proposta de turma esvaziou, deletar turma em Filial-Turma, Curso-Turma e Turma
+        err, _ = filialturma.del_aula(id_turma)
+        if err != 0:
+            # Algum erro ao deletar a turma da filial
+            return err, None
+
+        err, _ = cursoturma.del_assunto(id_turma)
+        if err != 0:
+            # Algum erro ao deletar a turma do curso
+            return err, None
+        
+        err, _ = turma.del_turma(id_turma)
+        if err != 0:
+            # Algum erro ao deletar a turma
+            return err, None
+    
+    return 0, None
 
 def get_turmas_by_aluno(id_aluno: int) -> tuple[int, list[int]]:
     """
@@ -367,12 +395,12 @@ def get_matricula(id_turma: int, id_aluno: int) -> tuple[int, dict]:
     """
     Retorna os atributos de uma certa matrícula de aluno em turma
     """
-    err, aluno_dict = aluno.get_aluno(id_aluno)
+    err, _ = aluno.get_aluno(id_aluno)
     if err != 0:
         # Algum erro ao encontrar o aluno
         return err, None # type: ignore
 
-    err, turma_dict = turma.get_turma(id_turma)
+    err, _ = turma.get_turma(id_turma)
     if err != 0:
         # Algum erro ao encontrar a turma
         return err, None # type: ignore
