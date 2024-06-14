@@ -4,7 +4,7 @@ from .. import cursoturma, avaliacaocurso, alunoavaliacao, filialturma
 
 # Exportando funções de acesso
 __all__ = ["add_matricula", "del_matricula", "get_turmas_by_aluno", "get_alunos_by_turma", 
-           "get_faltas", "is_aprovado", "is_cheia", "get_matricula"]
+           "get_faltas", "is_aprovado", "is_cheia", "get_matricula", "set_faltas"]
 
 # Globais
 _SCRIPT_DIR_PATH: str = os.path.dirname(os.path.realpath(__file__))
@@ -198,6 +198,17 @@ def _atualiza_horario_aluno(id_aluno: int, id_turma: int) -> None:
 
     aluno.set_horario(id_aluno, novo_horario[0], novo_horario[1])
 
+def _get_matricula_original(id_turma: int, id_aluno: int) -> dict:
+    """
+    Retorna uma referência à matrícula de um aluno em uma turma.
+    Serve para atualizar a matrícula no dicionário interno, assume que a matrícula existe.
+    """
+    for matricula in _matriculas:
+        if matricula["id_turma"] == id_turma and matricula["id_aluno"] == id_aluno:
+            return matricula
+
+    return None # type: ignore
+
 # Funções de acesso
 def is_cheia(id_turma: int) -> tuple[int, bool]:
     """
@@ -320,7 +331,6 @@ def del_matricula(id_turma: int, id_aluno: int) -> tuple[int, None]:
     """
     Remove uma matrícula. Se a turma esvaziar, deleta a turma.
     """
-    # se a turma esvaziar, precisamos deletar ela
     err, matricula = get_matricula(id_turma, id_aluno)
     if err != 0:
         # Algum erro ao encontrar a matrícula
@@ -421,6 +431,20 @@ def get_faltas(id_turma: int, id_aluno: int) -> tuple[int, int]:
         return err, None # type: ignore
     
     return matricula["faltas"]
+
+def set_faltas(id_turma: int, id_aluno: int, faltas: int) -> tuple[int, None]:
+    """
+    Atualiza a quantidade de faltas de um aluno em uma turma
+    """
+    err, _ = get_matricula(id_turma, id_aluno)
+    if err != 0:
+        # Algum erro ao encontrar a matrícula
+        return err, None
+    
+    matricula = _get_matricula_original(id_turma, id_aluno)
+    matricula["faltas"] = faltas
+
+    return 0, None
 
 def is_aprovado(id_turma: int, id_aluno: int) -> tuple[int, bool]:
     """
