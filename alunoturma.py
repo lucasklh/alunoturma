@@ -336,6 +336,10 @@ def del_matricula(id_turma: int, id_aluno: int) -> tuple[int, None]:
         # Algum erro ao encontrar a matrícula
         return err, None
     
+    if turma.is_final(id_turma)[1] and not turma.is_ativa(id_turma)[1]:
+        # Turma já se formou, não é possível remover matrícula
+        return 29, None
+    
     # Remover matrícula
     _matriculas.remove(matricula)
 
