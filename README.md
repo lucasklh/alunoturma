@@ -26,9 +26,11 @@ Python 3.9+
 
 ## add_matricula
 
-Essa função é chamada quando um aluno deseja entrar em uma turma de um certo curso. Ela aplica uma série de filtros às turmas existentes, para verificar se existe alguma turma disponível, de acordo com as necessidades do aluno. Caso não exista, cria uma nova proposta de turma, contendo o aluno.
+Essa função é chamada quando um aluno deseja se matricular em um certo curso. Ela aplica uma série de filtros às turmas existentes, para verificar se existe alguma turma disponível, de acordo com as necessidades do aluno. Caso não exista, cria uma nova proposta de turma, contendo o aluno.
 
 O módulo aluno é acessado para se obter os parâmetros de horário e filial de preferência. Após o aluno ser inserido em uma turma, seu horário é atualizado utilizando `set_horario` para refletir sua nova disponibilidade. Se a turma for online, não há atualização, pois as aulas não têm horário fixo.
+
+Conforme combinado com o cliente, não vamos considerar prioridade de matrícula para alunos cursando alguma formação.
 
 ### Atualização de horário
 

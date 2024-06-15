@@ -1,10 +1,10 @@
-import os, json, atexit, datetime
+import os, json, atexit, datetime, copy
 from .. import curso, aluno, turma
 from .. import cursoturma, avaliacaocurso, alunoavaliacao, filialturma
 
 # Exportando funções de acesso
 __all__ = ["add_matricula", "del_matricula", "get_turmas_by_aluno", "get_alunos_by_turma", 
-           "get_faltas", "is_aprovado", "is_cheia"]
+           "get_faltas", "is_aprovado", "is_cheia", "get_matricula", "set_faltas"]
 
 # Globais
 _SCRIPT_DIR_PATH: str = os.path.dirname(os.path.realpath(__file__))
@@ -198,6 +198,17 @@ def _atualiza_horario_aluno(id_aluno: int, id_turma: int) -> None:
 
     aluno.set_horario(id_aluno, novo_horario[0], novo_horario[1])
 
+def _get_matricula_original(id_turma: int, id_aluno: int) -> dict:
+    """
+    Retorna uma referência à matrícula de um aluno em uma turma.
+    Serve para atualizar a matrícula no dicionário interno, assume que a matrícula existe.
+    """
+    for matricula in _matriculas:
+        if matricula["id_turma"] == id_turma and matricula["id_aluno"] == id_aluno:
+            return matricula
+
+    return None # type: ignore
+
 # Funções de acesso
 def is_cheia(id_turma: int) -> tuple[int, bool]:
     """
@@ -223,14 +234,16 @@ def is_cheia(id_turma: int) -> tuple[int, bool]:
 
     if qtd_alunos <= 0:
         # Turma vazia, isso não deveria acontecer
-        return 28, None # type: ignore
+        return 26, None # type: ignore
 
 	# Se a quantidade de alunos for maior ou igual ao máximo, a turma está cheia
+    # Na verdade não deveria ser maior
     return 0, qtd_alunos >= max_alunos
 
 def add_matricula(id_aluno: int, id_curso: int, quer_online: bool) -> tuple[int, None]:
     """
-    Documentação
+    Matricula o aluno em alguma turma de um curso específico. Se não houver uma turma disponível,
+    cria uma nova proposta de turma.
     """
     err, aluno_dict = aluno.get_aluno(id_aluno)
     if err != 0:
@@ -242,7 +255,7 @@ def add_matricula(id_aluno: int, id_curso: int, quer_online: bool) -> tuple[int,
         # Algum erro ao encontrar o curso
         return err, None
     
-    # Verificar se existe alguma turma disponível para o aluno
+    # Verifica se existe alguma turma disponível para o aluno
 
     # Turmas existentes no horário disponível do aluno
     turmas_candidatas: list[int] = _turmas_por_horario(turma.get_turmas()[1], aluno_dict["horario"])
@@ -260,10 +273,9 @@ def add_matricula(id_aluno: int, id_curso: int, quer_online: bool) -> tuple[int,
     # E que sejam do curso desejado
     turmas_candidatas = _turmas_do_curso(turmas_candidatas, id_curso)
 
-    # Chegando aqui, se houver alguma turma disponível, matricular o aluno na mais cedo
+    # Após filtrar, se houver alguma turma disponível, matricula o aluno na mais cedo
     if turmas_candidatas:
         turma_matricula = _turma_com_horario_mais_cedo(turmas_candidatas)
-        turma_matricula_dict = turma.get_turma(turma_matricula)[1]
         
         nova_matricula = {
             "id_turma": turma_matricula,
@@ -273,39 +285,170 @@ def add_matricula(id_aluno: int, id_curso: int, quer_online: bool) -> tuple[int,
         }
         _matriculas.append(nova_matricula)
 
-        # Atualizar horário do aluno, se não for online
+        # Atualiza horário do aluno, se não for online
         _atualiza_horario_aluno(id_aluno, turma_matricula)
 
         return 0, None
     # Caso contrário, abrir uma nova turma para o aluno
     else:
-        # novamente, usar o horario mais cedo possivel
-        # nao esquecer de incluir a turma no Curso-Turma e Filial-Turma
-        pass
+        hora_inicio: int = aluno_dict["horario"][0]
+        hora_fim: int = hora_inicio + curso_dict["carga_horaria"]
+
+        err, nova_turma = turma.add_turma(quer_online, curso_dict["duracao_semanas"], 
+                                          [hora_inicio, hora_fim])
+        if err != 0:
+            # Algum erro ao criar a nova turma
+            return err, None
+        
+        # Adiciona a nova turma em Curso-Turma e Filial-Turma
+        err, _ = cursoturma.add_assunto(nova_turma, id_curso)
+        if err != 0:
+            # Algum erro ao adicionar a turma ao curso
+            turma.del_turma(nova_turma)
+            return err, None
+        
+        err, _ = filialturma.add_aula(aluno_dict["filial_pref"], nova_turma)
+        if err != 0:
+            # Algum erro ao adicionar a turma à filial
+            cursoturma.del_assunto(nova_turma)
+            turma.del_turma(nova_turma)
+            return err, None
+        
+        # Matricula o aluno e atualiza seu horário
+        nova_matricula = {
+            "id_turma": nova_turma,
+            "id_aluno": id_aluno,
+            "faltas": 0,
+            "data_matriculado": datetime.datetime.now()
+        }
+        _matriculas.append(nova_matricula)
+
+        _atualiza_horario_aluno(id_aluno, nova_turma)
+
+        return 0, None
 
 def del_matricula(id_turma: int, id_aluno: int) -> tuple[int, None]:
     """
-    Documentação
+    Remove uma matrícula. Se a turma esvaziar, deleta a turma.
     """
-    raise NotImplementedError
+    err, matricula = get_matricula(id_turma, id_aluno)
+    if err != 0:
+        # Algum erro ao encontrar a matrícula
+        return err, None
+    
+    if turma.is_final(id_turma)[1] and not turma.is_ativa(id_turma)[1]:
+        # Turma já se formou, não é possível remover matrícula
+        return 29, None
+    
+    # Remover matrícula
+    _matriculas.remove(matricula)
+
+    err, _ = get_alunos_by_turma(id_turma)
+    if err == 26:
+        # Proposta de turma esvaziou, deletar turma em Filial-Turma, Curso-Turma e Turma
+        err, _ = filialturma.del_aula(id_turma)
+        if err != 0:
+            # Algum erro ao deletar a turma da filial
+            return err, None
+
+        err, _ = cursoturma.del_assunto(id_turma)
+        if err != 0:
+            # Algum erro ao deletar a turma do curso
+            return err, None
+        
+        err, _ = turma.del_turma(id_turma)
+        if err != 0:
+            # Algum erro ao deletar a turma
+            return err, None
+    
+    return 0, None
 
 def get_turmas_by_aluno(id_aluno: int) -> tuple[int, list[int]]:
     """
-    Documentação
+    Retorna todas turmas em que um aluno está matriculado
     """
-    raise NotImplementedError
+    err, _ = aluno.get_aluno(id_aluno)
+    if err != 0:
+        # Algum erro ao encontrar o aluno
+        return err, None # type: ignore
+
+    turmas = []
+    
+    for matricula in _matriculas:
+        if matricula["id_aluno"] == id_aluno:
+            turmas.append(matricula["id_turma"])
+    
+    if turmas:
+        return 0, turmas
+    else:
+        # Nenhuma matrícula encontrada para o aluno
+        return 28, None # type: ignore
 
 def get_alunos_by_turma(id_turma: int) -> tuple[int, list[int]]:
     """
-    Documentação
+    Retorna todos alunos matriculados em uma turma
     """
-    raise NotImplementedError
+    err, _ = turma.get_turma(id_turma)
+    if err != 0:
+        # Algum erro ao encontrar a turma
+        return err, None # type: ignore
+    
+    alunos = []
+
+    for matricula in _matriculas:
+        if matricula["id_turma"] == id_turma:
+            alunos.append(matricula["id_aluno"])
+    
+    if alunos:
+        return 0, alunos
+    else:
+        # Nenhum aluno matriculado na turma, não deveria acontecer
+        return 26, None # type: ignore
+
+def get_matricula(id_turma: int, id_aluno: int) -> tuple[int, dict]:
+    """
+    Retorna os atributos de uma certa matrícula de aluno em turma
+    """
+    err, _ = aluno.get_aluno(id_aluno)
+    if err != 0:
+        # Algum erro ao encontrar o aluno
+        return err, None # type: ignore
+
+    err, _ = turma.get_turma(id_turma)
+    if err != 0:
+        # Algum erro ao encontrar a turma
+        return err, None # type: ignore
+    
+    for matricula in _matriculas:
+        if matricula["id_turma"] == id_turma and matricula["id_aluno"] == id_aluno:
+            return 0, copy.deepcopy(matricula)
+    
+    return 27, None # type: ignore
 
 def get_faltas(id_turma: int, id_aluno: int) -> tuple[int, int]:
     """
-    Documentação
+    Retorna a quantidade de faltas de um aluno em uma turma
     """
-    raise NotImplementedError
+    err, matricula = get_matricula(id_turma, id_aluno)
+    if err != 0:
+        # Algum erro ao encontrar a matrícula
+        return err, None # type: ignore
+    
+    return matricula["faltas"]
+
+def set_faltas(id_turma: int, id_aluno: int, faltas: int) -> tuple[int, None]:
+    """
+    Atualiza a quantidade de faltas de um aluno em uma turma
+    """
+    err, _ = get_matricula(id_turma, id_aluno)
+    if err != 0:
+        # Algum erro ao encontrar a matrícula
+        return err, None
+    
+    matricula = _get_matricula_original(id_turma, id_aluno)
+    matricula["faltas"] = faltas
+
+    return 0, None
 
 def is_aprovado(id_turma: int, id_aluno: int) -> tuple[int, bool]:
     """
@@ -362,4 +505,4 @@ def is_aprovado(id_turma: int, id_aluno: int) -> tuple[int, bool]:
 _read_matriculas()
 
 # Salvar turmas ao final do programa
-atexit.register(_write_matriculas);
+atexit.register(_write_matriculas)
