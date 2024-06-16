@@ -450,55 +450,69 @@ def set_faltas(id_turma: int, id_aluno: int, faltas: int) -> tuple[int, None]:
 
     return 0, None
 
-def is_aprovado(id_turma: int, id_aluno: int) -> tuple[int, bool]:
+def is_aprovado(id_turma: int, id_aluno: int) -> tuple[int, bool | None]:
     """
-    is_aprovado confere a aprovação de um aluno numa certa turma de curso.
-    Caso o aluno esteja aprovado, retornara True, caso não, False.
+    Retorna se um aluno foi aprovado em uma turma, ou None se for indeterminado
     """
+    err, turma_dict = turma.get_turma(id_turma)
+    if err != 0:
+        # Algum erro ao encontrar a turma
+        return err, None
+    
+    err, aluno_dict = aluno.get_aluno(id_aluno)
+    if err != 0:
+        # Algum erro ao encontrar o aluno
+        return err, None
 
-    # verifica as faltas do aluno no sistema
-    faltas = get_faltas(id_turma, id_aluno)
-    if faltas[0] != 0:
-        return 27, False
+    # Verifica se a turma já encerrou
+    
+    if not (turma.is_final(id_turma)[1] and not turma.is_ativa(id_turma)[1]):
+        # Turma ainda está tendo aulas
+        return 0, None
 
-    #encontra de que curso é a turma que este aluno se encontra
-    turma_curso = cursoturma.get_curso_by_turma(id_turma)
-    if turma_curso[0] != 0:
-        return 6, False
+    # Verifica se foi reprovado por falta, de acordo com a duração do curso
+
+    err, faltas = get_faltas(id_turma, id_aluno)
+    if err != 0:
+        # Algum erro ao recuperar as faltas do aluno na turma
+        return err, None
+
+    err, curso_da_turma = cursoturma.get_curso_by_turma(id_turma)
+    if err != 0:
+        # Algum erro ao encontrar o curso da turma
+        return err, None
         
-    #pega as informações necessárias para descobrir se o aluno está aprovado a partir do curso feito
-    curso = curso.get_curso(turma_curso[1])
-    if curso[0] != 0:
-        return 27, True
+    err, curso_dict = curso.get_curso(curso_da_turma)
+    if err != 0:
+        # Algum erro ao encontrar o curso
+        return err, None
 
-    #verifica a duração do curso e compara se passou pelo minimo de presença
-    faltas_permitidas = curso[1]["duracao_semanas"]
-    if faltas > 0.3 * faltas_permitidas:
+    num_aulas = curso_dict["duracao_semanas"]
+    if faltas > (.3 * num_aulas):
+        # Reprovado por faltas
         return 0, False
+    
+    # Verifica se foi reprovado por média, de acordo com as avaliações feitas
         
-    #obtem os id's de provas aplicadas para esse curso nas turmas
-    avaliacoes = avaliacaocurso.get_criterio(curso[1]["id"])
-    if avaliacoes[0] != 0:
-        return 26, False
+    err, avs_criterio = avaliacaocurso.get_criterio(curso_da_turma)
+    if err != 0:
+        # Algum erro ao encontrar as avaliações do curso
+        return err, None
 
-    #armazena todas as notas de tiradas pelo aluno neste curso
     notas_recebidas = []
 
-    #percorre cada id e busca a nota encontrada pelo aluno na avaliação
-    for i in range(len(avaliacoes[1])):
-        resposta_aluno = alunoavaliacao.get_resposta(id_aluno,avaliacoes[1][i])
-        if resposta_aluno[0] != 0:
-            return 13, False
-        notas_recebidas.append(resposta_aluno[1]["nota"])
+    for aval in avs_criterio:
+        err, resposta_aluno = alunoavaliacao.get_resposta(id_aluno, aval)
+        if err != 0:
+            # Algum erro ao encontrar a resposta do aluno
+            return err, None
+        
+        notas_recebidas.append(resposta_aluno["nota"])
 
-    #faz o somatório dos valores da lista e divide pelo número de 
-    #avaliações que constam ter sido aplicadas para este curso
-    
-    media = sum(notas_recebidas) / len(avaliacoes[1])
+    media = sum(notas_recebidas) / len(avs_criterio)
 
-    #se a media for maior que 7, o aluno está aprovado
-    if media >= 7:
-        return 0, True
+    # Aprovado ou reprovado por média
+    return 0, media >= 7.0
 
 # Setup
 # Popular lista de turmas

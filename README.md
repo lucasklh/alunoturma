@@ -51,4 +51,10 @@ Lembrando que turmas online possuem vagas infinitas, enquanto estiverem ativas. 
 
 ## is_aprovado
 
-Essa função retorna `True` caso o aluno tenha sido aprovado, `False` caso seja reprovado, e `None` se sua aprovação ainda não pode ser determinada, por exemplo se as aulas da turma ainda não acabaram. Se houver algum erro, `None` será retornado com um código de erro diferente de zero.
+Essa função retorna `True` caso o aluno tenha sido aprovado, `False` caso seja reprovado, e `None` se sua aprovação ainda não pode ser determinada, por exemplo se as aulas da turma ainda não acabaram. Se houver algum erro, `None` será retornado com um código diferente de zero.
+
+### Condições de aprovação
+
+- A turma deve ter sido **encerrada** (fim das aulas)
+- O aluno deve possuir pelo menos **70% de presença**, em turmas presenciais
+- O aluno deve ter **média maior ou igual a 7.0 nas avaliações**
