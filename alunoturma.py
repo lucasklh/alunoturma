@@ -459,12 +459,12 @@ def is_aprovado(id_turma: int, id_aluno: int) -> tuple[int, bool | None]:
     """
     Retorna se um aluno foi aprovado em uma turma, ou None se for indeterminado
     """
-    err, turma_dict = turma.get_turma(id_turma)
+    err, _ = turma.get_turma(id_turma)
     if err != 0:
         # Algum erro ao encontrar a turma
         return err, None
     
-    err, aluno_dict = aluno.get_aluno(id_aluno)
+    err, _ = aluno.get_aluno(id_aluno)
     if err != 0:
         # Algum erro ao encontrar o aluno
         return err, None
