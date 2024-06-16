@@ -445,6 +445,11 @@ def set_faltas(id_turma: int, id_aluno: int, faltas: int) -> tuple[int, None]:
         # Algum erro ao encontrar a matrícula
         return err, None
     
+    _, turma_dict = turma.get_turma(id_turma)
+    if turma_dict["is_online"]:
+        # Turmas online não contabilizam presença
+        return 43, None
+    
     matricula = _get_matricula_original(id_turma, id_aluno)
     matricula["faltas"] = faltas
 
