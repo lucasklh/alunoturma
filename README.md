@@ -47,4 +47,8 @@ Como temos apenas uma range de horário final e inicial, não podemos separar es
 
 Verifica se uma turma possui vagas para novos alunos ou não.
 
-Lembrando que turmas online possuem vagas infinitas, enquanto estiverem ativas.
+Lembrando que turmas online possuem vagas infinitas, enquanto estiverem ativas. A turma online possui `max_alunos` sempre `-1`.
+
+## is_aprovado
+
+Essa função retorna `True` caso o aluno tenha sido aprovado, `False` caso seja reprovado, e `None` se sua aprovação ainda não pode ser determinada, por exemplo se as aulas da turma ainda não acabaram. Se houver algum erro, `None` será retornado com um código de erro diferente de zero.
