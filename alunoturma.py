@@ -1,6 +1,16 @@
-import os, json, atexit, datetime, copy
-from .. import curso, aluno, turma
-from .. import cursoturma, avaliacaocurso, alunoavaliacao, filialturma
+import os, json, atexit, datetime, copy, sys
+
+if 'unittest' in sys.modules:
+    import mock_aluno as aluno
+    import mock_curso as curso
+    import mock_turma as turma
+    import mock_alunoavaliacao as alunoavaliacao
+    import mock_avaliacaocurso as avaliacaocurso
+    import mock_filialturma as filialturma
+    import mock_cursoturma as cursoturma
+else:
+    from .. import curso, aluno, turma
+    from .. import cursoturma, avaliacaocurso, alunoavaliacao, filialturma
 
 # Exportando funções de acesso
 __all__ = ["add_matricula", "del_matricula", "get_turmas_by_aluno", "get_alunos_by_turma", 
