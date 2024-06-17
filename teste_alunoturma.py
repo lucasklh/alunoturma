@@ -53,12 +53,17 @@ class TestAlunoTurma(unittest.TestCase):
         result = alunoturma._turmas_do_curso([1, 2, 3], 1)
         self.assertEqual(result, [1, 2])
 
+    @patch('alunoturma.cursoturma.get_turmas_by_curso')
+    def test_turmas_do_curso2(self, mock_get_turmas_by_curso):
+        mock_get_turmas_by_curso.return_value = (0, [2, 4])
+        result = alunoturma._turmas_do_curso([2, 3, 4], 1)
+        self.assertEqual(result, [2, 4])
+
     @patch('alunoturma.filialturma.get_turmas_by_filial')
     def test_turmas_por_filial(self, mock_get_turmas_by_filial):
         mock_get_turmas_by_filial.return_value = (0, [1, 2])
         result = alunoturma._turmas_por_filial([1, 2, 3], 1)
         self.assertEqual(result, [1, 2])
-
 
     def test_get_matricula_original(self):
         alunoturma._matriculas = [{"id_turma": 1, "id_aluno": 1}, {"id_turma": 2, "id_aluno": 2}]
