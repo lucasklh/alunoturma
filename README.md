@@ -63,16 +63,16 @@ Essa função retorna `True` caso o aluno tenha sido aprovado, `False` caso seja
 
 Esta função serve para removar uma matricula de uma turma. Caso a turma esvazie por conta disso deleta a turma como um todo.
 
-### Acoplamento
+## acoplamento
 
-- id_turma: int: id da turma a ser retirada o aluno.
-- id_aluno: int: id de aluno a ser removido da turma.
+id_turma: int: id da turma a ser retirada o aluno.
+id_aluno: int: id de aluno a ser removido da turma.
 
-### Requisitos
+## requisito
 
 Caso a turma esvazie deleta-a dos modulos Filial-Turma, Curso-Turma e Turma
 
-### Restrições
+## restrições
 
 Se a turma já se formou não é possível retirar uma matrícula dela.
 
@@ -80,11 +80,11 @@ Se a turma já se formou não é possível retirar uma matrícula dela.
 
 Função que retorna as turmas que um determinado aluno está cursando.
 
-### Acoplamento
+## acoplamento
 
-- id_aluno: int: id do aluno a ser filtrado
+id_aluno: int: id do aluno a ser filtrado
 
-### Requisitos
+## requisitos
 
 Um aluno pode não estar matriculado em turma alguma.
 
@@ -92,26 +92,28 @@ Um aluno pode não estar matriculado em turma alguma.
 
 Função que retorna os alunos que estão cursando uma determinada turma.
 
-### Acoplamento
+## acoplamento
 
 id_turma: int: id da turma a ser pesquisada
 
-### Restrições
+## restrições
 
 Não pode haver uma turma com nenhum aluno matriculado
 
-## get_matricula e get_faltas
+## get_matricula 
 
 Retorna os atributos de uma certa matrícula de aluno em turma
 
+## get_faltas
+
 Retorna a quantidade de faltas de um aluno em uma turma
 
-### Acoplamento
+## acoplamento 
 
-- id_turma: int: id da turma a ser conferida.
-- id_aluno: int: id do aluno para conferir as faltas.
+id_turma: int: id da turma a ser conferida.
+id_aluno: int: id do aluno para conferir as faltas.
 
-### Requisitos
+## requisitos
 
 Caso a turma for online não é necessário contabilizar presença.
 
@@ -119,8 +121,8 @@ Caso a turma for online não é necessário contabilizar presença.
 
 Muda a quantidade de faltas de um aluno em determinada turma
 
-### Acoplamento
+## acoplamento
 
-- id_turma: int: id da turma a ser checada.
-- id_aluno: int: id do aluno.
-- faltas: int: numero de faltas do aluno a ser mudada.
+id_turma: int: id da turma a ser checada.
+id_aluno: int: id do aluno.
+faltas: int: numero de faltas do aluno a ser mudada.
