@@ -58,3 +58,69 @@ Essa função retorna `True` caso o aluno tenha sido aprovado, `False` caso seja
 - A turma deve ter sido **encerrada** (fim das aulas)
 - O aluno deve possuir pelo menos **70% de presença**, em turmas presenciais
 - O aluno deve ter **média maior ou igual a 7.0 nas avaliações**
+
+## del_matricula
+
+Esta função serve para removar uma matricula de uma turma. Caso a turma esvazie por conta disso deleta a turma como um todo.
+
+### Acoplamento
+
+- id_turma: int: id da turma a ser retirada o aluno.
+- id_aluno: int: id de aluno a ser removido da turma.
+
+### Requisitos
+
+Caso a turma esvazie deleta-a dos modulos Filial-Turma, Curso-Turma e Turma
+
+### Restrições
+
+Se a turma já se formou não é possível retirar uma matrícula dela.
+
+## get_turmas_by_aluno
+
+Função que retorna as turmas que um determinado aluno está cursando.
+
+### Acoplamento
+
+- id_aluno: int: id do aluno a ser filtrado
+
+### Requisitos
+
+Um aluno pode não estar matriculado em turma alguma.
+
+## get_alunos_by_turma
+
+Função que retorna os alunos que estão cursando uma determinada turma.
+
+### Acoplamento
+
+id_turma: int: id da turma a ser pesquisada
+
+### Restrições
+
+Não pode haver uma turma com nenhum aluno matriculado
+
+## get_matricula e get_faltas
+
+Retorna os atributos de uma certa matrícula de aluno em turma
+
+Retorna a quantidade de faltas de um aluno em uma turma
+
+### Acoplamento
+
+- id_turma: int: id da turma a ser conferida.
+- id_aluno: int: id do aluno para conferir as faltas.
+
+### Requisitos
+
+Caso a turma for online não é necessário contabilizar presença.
+
+## set_faltas
+
+Muda a quantidade de faltas de um aluno em determinada turma
+
+### Acoplamento
+
+- id_turma: int: id da turma a ser checada.
+- id_aluno: int: id do aluno.
+- faltas: int: numero de faltas do aluno a ser mudada.
